@@ -42,6 +42,7 @@ def main():
     process_support_images(model, support_images, support_labels)
     # test a single image
     result = inference_classifier(model, args.image)
+    print(result)
     # show the results
     show_result_pyplot(args.image, result)
 

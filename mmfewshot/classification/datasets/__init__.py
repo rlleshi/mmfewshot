@@ -5,6 +5,7 @@ from .base import BaseFewShotDataset
 from .builder import (build_dataloader, build_dataset,
                       build_meta_test_dataloader)
 from .cub import CUBDataset
+from .zim import ZIMDataset
 from .dataset_wrappers import EpisodicDataset, MetaTestDataset
 from .mini_imagenet import MiniImageNetDataset
 from .pipelines import LoadImageFromBytes
@@ -15,5 +16,5 @@ __all__ = [
     'build_dataloader', 'build_dataset', 'DATASETS', 'PIPELINES', 'CUBDataset',
     'LoadImageFromBytes', 'build_meta_test_dataloader', 'MiniImageNetDataset',
     'TieredImageNetDataset', 'label_wrapper', 'BaseFewShotDataset',
-    'EpisodicDataset', 'MetaTestDataset'
+    'EpisodicDataset', 'MetaTestDataset', 'ZIMDataset',
 ]

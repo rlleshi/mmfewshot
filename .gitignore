@@ -117,6 +117,18 @@ venv.bak/
 work_dirs/
 mmfewshot/.mim
 
+/data
+/work_dir
+/mlruns
+demo/zim
+tools/zim/server/ground_truth/
+.vscode
+.idea
+.DS_Store
+
+# js
+tools/zim/server/node_modules/
+
 # Pytorch
 *.pth
 *.py~

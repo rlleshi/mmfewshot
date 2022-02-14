@@ -1,0 +1,8 @@
+0 chasse_bw_bounc
+1 chasse_bw_bounc_not
+2 chasse_fw_bounc
+3 chasse_fw_bounc_not
+4 nt_bw_1-3_rising
+5 nt_bw_1-3_rising_not
+6 nt_fw_1-3_rising
+7 nt_fw_1-3_rising_not
