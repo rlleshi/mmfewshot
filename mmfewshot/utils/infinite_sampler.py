@@ -8,6 +8,8 @@ import torch
 from mmcv.runner import get_dist_info
 from torch.utils.data.sampler import Sampler
 
+from .dist_utils import sync_random_seed
+
 
 class InfiniteSampler(Sampler):
     """Return a infinite stream of index.
@@ -28,7 +30,13 @@ class InfiniteSampler(Sampler):
                  seed: int = 0,
                  shuffle: bool = True) -> None:
         self.dataset = dataset
-        self.seed = seed if seed is not None else 0
+        # In distributed sampling, different ranks should sample
+        # non-overlapped data in the dataset. Therefore, this function
+        # is used to make sure that each rank shuffles the data indices
+        # in the same order based on the same seed. Then different ranks
+        # could use different indices to select non-overlapped data from the
+        # same data list.
+        self.seed = sync_random_seed(seed)
         self.shuffle = shuffle
         self.size = len(dataset)
         self.indices = self._indices()
@@ -37,7 +45,7 @@ class InfiniteSampler(Sampler):
     def _infinite_indices(self) -> Iterator:
         """Infinitely yield a sequence of indices."""
         g = torch.Generator()
-        g.manual_seed(self.seed)
+        g.manual_seed(self.seed + self.epoch)
         while True:
             if self.shuffle:
                 yield from torch.randperm(self.size, generator=g).tolist()
@@ -49,8 +57,7 @@ class InfiniteSampler(Sampler):
         yield from itertools.islice(self._infinite_indices(), 0, None)
 
     def __iter__(self) -> Iterator:
-        for idx in self.indices:
-            yield idx
+        yield from self.indices
 
     def __len__(self) -> int:
         """Length of dataset."""
@@ -89,7 +96,13 @@ class InfiniteGroupSampler(Sampler):
                  shuffle: bool = True) -> None:
         self.dataset = dataset
         self.samples_per_gpu = samples_per_gpu
-        self.seed = seed if seed is not None else 0
+        # In distributed sampling, different ranks should sample
+        # non-overlapped data in the dataset. Therefore, this function
+        # is used to make sure that each rank shuffles the data indices
+        # in the same order based on the same seed. Then different ranks
+        # could use different indices to select non-overlapped data from the
+        # same data list.
+        self.seed = sync_random_seed(seed)
         self.shuffle = shuffle
 
         assert hasattr(self.dataset, 'flag')
@@ -105,7 +118,7 @@ class InfiniteGroupSampler(Sampler):
     def _infinite_indices(self) -> Iterator:
         """Infinitely yield a sequence of indices."""
         g = torch.Generator()
-        g.manual_seed(self.seed)
+        g.manual_seed(self.seed + self.epoch)
         while True:
             if self.shuffle:
                 yield from torch.randperm(self.size, generator=g).tolist()
@@ -168,7 +181,13 @@ class DistributedInfiniteSampler(Sampler):
         self.rank = rank
         self.num_replicas = num_replicas
         self.dataset = dataset
-        self.seed = seed if seed is not None else 0
+        # In distributed sampling, different ranks should sample
+        # non-overlapped data in the dataset. Therefore, this function
+        # is used to make sure that each rank shuffles the data indices
+        # in the same order based on the same seed. Then different ranks
+        # could use different indices to select non-overlapped data from the
+        # same data list.
+        self.seed = sync_random_seed(seed)
         self.shuffle = shuffle
         self.size = len(dataset)
         self.indices = self._indices_of_rank()
@@ -177,7 +196,7 @@ class DistributedInfiniteSampler(Sampler):
     def _infinite_indices(self) -> Iterator:
         """Infinitely yield a sequence of indices."""
         g = torch.Generator()
-        g.manual_seed(self.seed)
+        g.manual_seed(self.seed + self.epoch)
         while True:
             if self.shuffle:
                 indices = []
@@ -193,8 +212,7 @@ class DistributedInfiniteSampler(Sampler):
                                     self.num_replicas)
 
     def __iter__(self) -> Iterator:
-        for idx in self.indices:
-            yield idx
+        yield from self.indices
 
     def __len__(self):
         """return length of dataset."""
@@ -244,7 +262,13 @@ class DistributedInfiniteGroupSampler(Sampler):
         self.num_replicas = num_replicas
         self.dataset = dataset
         self.samples_per_gpu = samples_per_gpu
-        self.seed = seed if seed is not None else 0
+        # In distributed sampling, different ranks should sample
+        # non-overlapped data in the dataset. Therefore, this function
+        # is used to make sure that each rank shuffles the data indices
+        # in the same order based on the same seed. Then different ranks
+        # could use different indices to select non-overlapped data from the
+        # same data list.
+        self.seed = sync_random_seed(seed)
         self.shuffle = shuffle
 
         assert hasattr(self.dataset, 'flag')
@@ -260,7 +284,7 @@ class DistributedInfiniteGroupSampler(Sampler):
     def _infinite_indices(self) -> Iterator:
         """Infinitely yield a sequence of indices."""
         g = torch.Generator()
-        g.manual_seed(self.seed)
+        g.manual_seed(self.seed + self.epoch)
         while True:
             if self.shuffle:
                 indices = []

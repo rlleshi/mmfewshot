@@ -26,7 +26,7 @@ version_file = '../../mmfewshot/version.py'
 
 
 def get_version():
-    with open(version_file, 'r') as f:
+    with open(version_file) as f:
         exec(compile(f.read(), version_file, 'exec'))
     return locals()['__version__']
 
@@ -40,11 +40,15 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'recommonmark',
+    'myst_parser',
     'sphinx.ext.autosectionlabel',
     'sphinx_copybutton',
     'sphinx_markdown_tables',
 ]
+
+# Enable ::: for my_st
+myst_enable_extensions = ['colon_fence']
+myst_heading_anchors = 3
 
 autodoc_mock_imports = ['matplotlib', 'mmfewshot.version', 'mmcv.ops']
 

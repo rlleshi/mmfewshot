@@ -392,8 +392,8 @@ class BaseFewShotDataset(CustomDataset):
         new_data_infos = []
         for idx, data_info in enumerate(data_infos):
             selected_instance_indices = \
-                sorted([instance[1] for instance in keep_instances_indices
-                        if instance[0] == idx])
+                sorted(instance[1] for instance in keep_instances_indices
+                       if instance[0] == idx)
             if len(selected_instance_indices) == 0:
                 continue
             ann = data_info['ann']
@@ -539,6 +539,8 @@ class BaseFewShotDataset(CustomDataset):
             if len(row_data) == 10:
                 table_data.append(row_data)
                 row_data = []
+        if len(row_data) != 0:
+            table_data.append(row_data)
 
         table = AsciiTable(table_data)
         result += table.table

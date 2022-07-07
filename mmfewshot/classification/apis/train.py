@@ -1,4 +1,5 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+import warnings
 from typing import Dict, Union
 
 import torch
@@ -13,7 +14,7 @@ from mmfewshot.classification.core.evaluation import (DistMetaTestEvalHook,
                                                       MetaTestEvalHook)
 from mmfewshot.classification.datasets.builder import (
     build_dataloader, build_dataset, build_meta_test_dataloader)
-from mmfewshot.utils import get_root_logger
+from mmfewshot.utils import compat_cfg, get_root_logger
 
 
 def train_model(model: Union[MMDataParallel, MMDistributedDataParallel],
@@ -22,26 +23,29 @@ def train_model(model: Union[MMDataParallel, MMDistributedDataParallel],
                 distributed: bool = False,
                 validate: bool = False,
                 timestamp: str = None,
-                device: str = 'cuda',
+                device: str = None,
                 meta: Dict = None) -> None:
+    cfg = compat_cfg(cfg)
     logger = get_root_logger(log_level=cfg.log_level)
 
     # prepare data loaders
     dataset = dataset if isinstance(dataset, (list, tuple)) else [dataset]
 
-    data_loaders = [
-        build_dataloader(
-            ds,
-            cfg.data.samples_per_gpu,
-            cfg.data.workers_per_gpu,
-            # cfg.gpus will be ignored if distributed
-            num_gpus=len(cfg.gpu_ids),
-            dist=distributed,
-            round_up=True,
-            seed=cfg.seed,
-            pin_memory=cfg.get('pin_memory', False),
-            use_infinite_sampler=cfg.use_infinite_sampler) for ds in dataset
-    ]
+    train_dataloader_default_args = dict(
+        # cfg.gpus will be ignored if distributed
+        num_gpus=len(cfg.gpu_ids),
+        dist=distributed,
+        round_up=True,
+        seed=cfg.get('seed'),
+        pin_memory=cfg.get('pin_memory', False),
+        use_infinite_sampler=cfg.use_infinite_sampler)
+    # The specific dataloader settings
+    train_loader_cfg = {
+        **train_dataloader_default_args,
+        **cfg.data.get('train_dataloader', {})
+    }
+
+    data_loaders = [build_dataloader(ds, **train_loader_cfg) for ds in dataset]
 
     # put model on gpus
     if distributed:
@@ -54,13 +58,14 @@ def train_model(model: Union[MMDataParallel, MMDistributedDataParallel],
             broadcast_buffers=False,
             find_unused_parameters=find_unused_parameters)
     else:
-        if device == 'cuda':
-            model = MMDataParallel(
-                model.cuda(cfg.gpu_ids[0]), device_ids=cfg.gpu_ids)
-        elif device == 'cpu':
+        if device == 'cpu':
+            warnings.warn(
+                'The argument `device` is deprecated. To use cpu to train, '
+                'please refers to https://mmclassification.readthedocs.io/en'
+                '/latest/getting_started.html#train-a-model')
             model = model.cpu()
         else:
-            raise ValueError(F'unsupported device name {device}.')
+            model = MMDataParallel(model, device_ids=cfg.gpu_ids)
 
     # build runner
     optimizer = build_optimizer(model, cfg.optimizer)
